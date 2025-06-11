@@ -8,10 +8,10 @@ from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
 # Point to your new project's settings
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'videochat.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'videochat.settings') # <--- IMPORTANT: 'videochat.settings'
 
 # Import your app's routing
-import videochat_app.routing
+import videochat_app.routing # <--- IMPORTANT: 'videochat_app.routing'
 
 application = ProtocolTypeRouter(
     {
@@ -19,7 +19,7 @@ application = ProtocolTypeRouter(
         "websocket": AllowedHostsOriginValidator(
             AuthMiddlewareStack(
                 URLRouter(
-                    videochat_app.routing.websocket_urlpatterns # Point to your app's routing
+                    videochat_app.routing.websocket_urlpatterns # <--- IMPORTANT: 'videochat_app.routing'
                 )
             )
         ),

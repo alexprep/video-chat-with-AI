@@ -1,4 +1,4 @@
-# videochat/settings.py
+        # videochat/settings.py
 
 from pathlib import Path
 
@@ -16,11 +16,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
-    'videochat_app', # Renamed app here
+    'videochat_app', # <--- IMPORTANT: This MUST be 'videochat_app'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -29,12 +30,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'videochat.urls' # Updated project URL conf
+ROOT_URLCONF = 'videochat.urls' # <--- IMPORTANT: This MUST be 'videochat.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'], # Optional: If you want a global templates directory
+        'DIRS': [BASE_DIR / 'videochat_app' / 'templates'], # Added app's templates dir
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -46,11 +47,12 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'videochat.wsgi.application' # Updated project WSGI
+WSGI_APPLICATION = 'videochat.wsgi.application' # <--- IMPORTANT: This MUST be 'videochat.wsgi.application'
 
-ASGI_APPLICATION = 'videochat.asgi.application' # Updated project ASGI
+ASGI_APPLICATION = 'videochat.asgi.application' # <--- IMPORTANT: This MUST be 'videochat.asgi.application'
 
 # >>> CRITICAL: CHANNEL_LAYERS MUST BE IMMEDIATELY AFTER ASGI_APPLICATION <<<
+# >>> This is the correct place for it.                                <<<
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.pubsub.RedisPubSubChannelLayer',
@@ -81,4 +83,12 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR.parent / 'videochat' / 'static',
+    BASE_DIR / 'videochat_app' / 'static',
+]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
