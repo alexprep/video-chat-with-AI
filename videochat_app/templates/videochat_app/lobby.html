@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Chat Lobby</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            padding: 20px;
+            box-sizing: border-box;
+            flex-wrap: wrap; /* Allow wrapping for smaller screens */
+        }
+
+        .chat-container, .video-container, .call-controls {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 10px;
+        }
+
+        .chat-container {
+            flex: 1; /* Allows it to grow and shrink */
+            min-width: 300px; /* Minimum width for chat */
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-log {
+            height: 300px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            background-color: #e9ebee;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column; /* Stack messages vertically */
+        }
+
+        #chat-log p {
+            margin: 0 0 5px 0; /* Space between messages */
+            padding: 5px 8px;
+            background-color: #dcf8c6; /* Light green for messages */
+            border-radius: 8px;
+            align-self: flex-start; /* Align messages to the left */
+            word-wrap: break-word; /* Break long words */
+            max-width: 90%; /* Don't let messages take full width unnecessarily */
+        }
+        #chat-log p:last-child {
+            margin-bottom: 0;
+        }
+
+
+        #chat-message-input {
+            width: calc(100% - 10px); /* Adjust width for padding */
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* Include padding in width */
+            margin-bottom: 10px;
+        }
+
+        #chat-message-submit {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        #chat-message-submit:hover {
+            background-color: #0056b3;
+        }
+
+        .video-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 2; /* Allows it to grow and shrink more than chat */
+            min-width: 400px; /* Minimum width for video */
+            max-width: 700px;
+        }
+
+        .video-player {
+            width: 100%;
+            max-width: 600px;
+            height: auto; /* Maintain aspect ratio */
+            background-color: #333;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        #local-video {
+            border: 2px solid #007bff; /* Highlight local video */
+        }
+
+        #remote-video {
+            border: 2px solid #28a745; /* Highlight remote video */
+        }
+
+        .call-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px; /* Space between containers */
+            align-self: center; /* Center buttons if container is larger */
+        }
+
+        .call-button {
+            background-color: #28a745; /* Green for call */
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        .call-button:hover:not(:disabled) {
+            background-color: #218838;
+        }
+
+        .call-button#hangup-btn {
+            background-color: #dc3545; /* Red for hangup */
+        }
+
+        .call-button#hangup-btn:hover:not(:disabled) {
+            background-color: #c82333;
+        }
+
+        .call-button:disabled {
+            background-color: #6c757d; /* Grey when disabled */
+            cursor: not-allowed;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                align-items: center;
+            }
+            .chat-container, .video-container, .call-controls {
+                width: 95%;
+                max-width: unset; /* Remove max-width on smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Chat Lobby</h1>
+        <div id="chat-log"></div>
+        <input id="chat-message-input" type="text" placeholder="Type your message here...">
+        <input id="chat-message-submit" type="button" value="Send">
+    </div>
+
+    <div class="video-container">
+        <video id="local-video" autoplay muted class="video-player"></video>
+        <video id="remote-video" autoplay class="video-player"></video>
+        <div class="call-controls">
+            <button id="call-btn" class="call-button">Start Call</button>
+            <button id="hangup-btn" class="call-button">Hang Up</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Chat Logic Starts Here ---
+        const chatLog = document.querySelector('#chat-log');
+        const chatMessageInput = document.querySelector('#chat-message-input');
+        const chatMessageSubmit = document.querySelector('#chat-message-submit');
+
+        // The room name is hardcoded to 'lobby' for simplicity for this example
+        const roomName = 'lobby';
+
+        // Connect to the WebSocket
+        const chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'chat_message') {
+                const message = data.message;
+                chatLog.innerHTML += `<p>${message}</p>`; // Append a new paragraph for each message
+                chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll to latest message
+            } else if (data.type === 'offer' || data.type === 'answer' || data.type === 'candidate') {
+                handleSignalingMessage(data);
+            } else if (data.type === 'hangup') {
+                handleHangupSignal();
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+            // Inform user or try to reconnect
+            alert('Disconnected from chat. Please refresh the page.');
+        };
+
+        // Focus on input when page loads
+        chatMessageInput.focus();
+
+        // Send message on Enter key press
+        chatMessageInput.onkeyup = function(e) {
+            if (e.keyCode === 13) { // 13 is the Enter key
+                chatMessageSubmit.click();
+            }
+        };
+
+        // Send message on button click
+        chatMessageSubmit.onclick = function(e) {
+            const message = chatMessageInput.value.trim(); // Trim whitespace
+            if (message) { // Only send if message is not empty
+                chatSocket.send(JSON.stringify({
+                    'type': 'chat_message',
+                    'message': message
+                }));
+                chatMessageInput.value = ''; // Clear input field
+            }
+        };
+
+        // --- WebRTC Logic Starts Here ---
+
+        let localStream;
+        let remoteStream;
+        let peerConnection;
+
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const callBtn = document.getElementById('call-btn');
+        const hangupBtn = document.getElementById('hangup-btn');
+
+        // Disable call and hangup buttons initially
+        callBtn.disabled = true;
+        hangupBtn.disabled = true;
+
+        // Event Listeners for buttons
+        callBtn.addEventListener('click', createOffer);
+        hangupBtn.addEventListener('click', hangUp);
+
+        // STUN server configuration for NAT traversal
+        const servers = {
+            iceServers:[
+                {
+                    urls:['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
+                }
+            ]
+        }
+
+        // 1. Get Local Media (Camera and Microphone)
+        async function init() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                localVideo.srcObject = localStream; // Show local video stream
+                console.log("Local media stream obtained.");
+                callBtn.disabled = false; // Enable call button if media is obtained
+            } catch (error) {
+                console.error("Error accessing media devices:", error);
+                alert("Could not access camera/microphone. You can still chat, but video calls will not send your video/audio without media access.");
+                callBtn.disabled = false; // Still enable call button, allowing user to proceed without media for text chat/receiving
+                localStream = null; // Ensure localStream is null if not obtained
+            }
+        }
+
+        // 2. Create Peer Connection
+        async function createPeerConnection() {
+            // Only proceed if peerConnection is not already created
+            if (peerConnection) {
+                console.log("PeerConnection already exists. Skipping recreation.");
+                return;
+            }
+
+            peerConnection = new RTCPeerConnection(servers);
+            remoteStream = new MediaStream();
+            remoteVideo.srcObject = remoteStream;
+
+            // Add local tracks to peer connection if localStream is available
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                console.log("Local tracks added to peer connection.");
+            } else {
+                console.warn("No local media stream available. Proceeding without adding local tracks.");
+            }
+
+            // Listen for remote tracks
+            peerConnection.ontrack = async (event) => {
+                event.streams[0].getTracks().forEach(track => {
+                    remoteStream.addTrack(track);
+                });
+                console.log("Remote track added to remote stream.");
+            };
+
+            // Gather ICE candidates and send them to the other peer
+            peerConnection.onicecandidate = async (event) => {
+                if (event.candidate) {
+                    chatSocket.send(JSON.stringify({
+                        'type': 'candidate',
+                        'candidate': event.candidate
+                    }));
+                    console.log('Sending ICE candidate:', event.candidate);
+                }
+            };
+
+            // Update UI based on peer connection state
+            peerConnection.onconnectionstatechange = (event) => {
+                console.log('PeerConnection state change:', peerConnection.connectionState);
+                if (peerConnection.connectionState === 'connected') {
+                    hangupBtn.disabled = false; // Enable hangup button once connected
+                    callBtn.disabled = true; // Disable call button once connected
+                } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed' || peerConnection.connectionState === 'closed') {
+                    hangupBtn.disabled = true; // Disable hangup if disconnected
+                    callBtn.disabled = false; // Enable call button again if connection closed unexpectedly
+                    // Optionally, clear remote video if disconnected
+                    remoteVideo.srcObject = null;
+                }
+            };
+        }
+
+        // 3. Create Offer (Initiator)
+        async function createOffer() {
+            await createPeerConnection(); // Ensure peer connection is ready
+
+            if (!localStream) {
+                console.warn("Attempting to create offer without local media stream. You will only receive video.");
+                // No alert here, as the init() already alerted.
+            }
+
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                chatSocket.send(JSON.stringify({
+                    'type': 'offer',
+                    'offer': offer
+                }));
+                console.log('Sending offer:', offer);
+            } catch (error) {
+                console.error("Error creating or sending offer:", error);
+                alert("Failed to create call offer. Check console for details.");
+            }
+        }
+
+        // 4. Create Answer (Receiver)
+        async function createAnswer(offer) {
+            await createPeerConnection(); // Ensure peer connection is ready
+            try {
+                await peerConnection.setRemoteDescription(offer);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                chatSocket.send(JSON.stringify({
+                    'type': 'answer',
+                    'answer': answer
+                }));
+                console.log('Sending answer:', answer);
+            } catch (error) {
+                console.error("Error creating or sending answer:", error);
+                alert("Failed to create call answer. Check console for details.");
+            }
+        }
+
+        // 5. Handle Signaling Messages (from WebSocket)
+        async function handleSignalingMessage(message) {
+            if (message.type === 'offer') {
+                console.log('Received offer:', message.offer);
+                await createAnswer(message.offer);
+            } else if (message.type === 'answer') {
+                console.log('Received answer:', message.answer);
+                await peerConnection.setRemoteDescription(message.answer);
+            } else if (message.type === 'candidate') {
+                console.log('Received ICE candidate:', message.candidate);
+                // Ensure peerConnection and remoteDescription are set before adding candidate
+                if (peerConnection && peerConnection.remoteDescription) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
+                    } catch (e) {
+                        console.error("Error adding received ICE candidate:", e);
+                        // This can happen if candidate arrives out of order, often not fatal.
+                    }
+                } else {
+                     console.warn("PeerConnection or remoteDescription not ready for incoming ICE candidate. Candidate might be queued or ignored.", message.candidate);
+                }
+            }
+        }
+
+        // Hang Up Function
+        function hangUp() {
+            console.log('Attempting to hang up...');
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop()); // Stop local camera/mic
+                localStream = null;
+            }
+            localVideo.srcObject = null; // Clear local video
+            remoteVideo.srcObject = null; // Clear remote video
+
+            // Send a hangup message through WebSocket
+            if (chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'hangup'
+                }));
+            }
+            console.log('Call ended locally and hangup signal sent (if socket open).');
+            callBtn.disabled = false;
+            hangupBtn.disabled = true;
+            init(); // Re-initialize local stream after hangup
+        }
+
+        // Handle Hangup Signal from other peer
+        async function handleHangupSignal() {
+            console.log('Received hangup signal from other peer. Tearing down connection.');
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            // Do not stop local stream if the other peer hangs up, only clear remote.
+            remoteVideo.srcObject = null; // Clear remote video
+            callBtn.disabled = false; // Enable call button again
+            hangupBtn.disabled = true; // Disable hangup button
+        }
+
+        // Initial setup on page load
+        init(); // Call init() to try and get local media and enable relevant buttons
+    </script>
+</body>
+</html>
