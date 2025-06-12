@@ -1,13 +1,20 @@
         # videochat/settings.py
 
+import os
 from pathlib import Path
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-$7(_zqc68itjd5q#e-v_t#3q8(=o-+g3y7=l^vf4hw&9ulxj47' # Keep your original if you have one
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-your-secret-key-here'
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
 ALLOWED_HOSTS = []
 
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -16,12 +23,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
-    'videochat_app', # <--- IMPORTANT: This MUST be 'videochat_app'
+    'videochat_app',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -30,15 +36,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'videochat.urls' # <--- IMPORTANT: This MUST be 'videochat.urls'
+ROOT_URLCONF = 'videochat.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'videochat_app' / 'templates'], # Added app's templates dir
+        'DIRS': [os.path.join(BASE_DIR, 'videochat_app', 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -47,22 +54,10 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'videochat.wsgi.application' # <--- IMPORTANT: This MUST be 'videochat.wsgi.application'
+WSGI_APPLICATION = 'videochat.wsgi.application'
+ASGI_APPLICATION = 'videochat.asgi.application'
 
-ASGI_APPLICATION = 'videochat.asgi.application' # <--- IMPORTANT: This MUST be 'videochat.asgi.application'
-
-# >>> CRITICAL: CHANNEL_LAYERS MUST BE IMMEDIATELY AFTER ASGI_APPLICATION <<<
-# >>> This is the correct place for it.                                <<<
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.pubsub.RedisPubSubChannelLayer',
-        'CONFIG': {
-            'host': ('localhost', 6379),
-        },
-    },
-}
-# >>> END OF CHANNEL_LAYERS BLOCK <<<
-
+# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -70,25 +65,53 @@ DATABASES = {
     }
 }
 
+# Channel layers
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+
+# Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    { 'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator', },
-    { 'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', },
-    { 'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator', },
-    { 'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator', },
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
 
+# Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-
 STATICFILES_DIRS = [
-    BASE_DIR.parent / 'videochat' / 'static',
-    BASE_DIR / 'videochat_app' / 'static',
+    os.path.join(BASE_DIR, 'videochat_app', 'static'),
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Login URLs
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/login/'
+
+# Session settings
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False

@@ -7,8 +7,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # <--- IMPORTANT: This URL path will be like http://127.0.0.1:8000/videochat_app/
-    path('videochat_app/', include('videochat_app.urls')),
+    path('', include('videochat_app.urls')),  # Include app URLs at root path
 ]
 
 if settings.DEBUG:

@@ -1,587 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% load static %}
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Video Chat Lobby</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby - Video Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* ADDED: Styles for the new screen share video element */
-        #local-screen-share-video, #remote-screen-share-video {
-            width: 100%;
-            max-width: 480px; /* Same as other video players */
-            height: 270px;
-            background-color: #333;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            object-fit: cover;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: transform 0.3s ease;
-            display: none; /* Hidden by default, shown when sharing */
-            border: 3px solid #007bff; /* A distinct border color for screen share */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f7fafc;
+            margin: 0;
+            padding: 0;
         }
-
-        #local-screen-share-video:hover, #remote-screen-share-video:hover {
-            transform: scale(1.05);
+        .container {
+            max-width: 500px;
+            margin: 5rem auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 2rem;
+            text-align: center;
         }
-
-        /* Adjust video container layout for multiple videos */
-        .video-player-grid {
-            display: grid;
-            grid-template-columns: 1fr; /* Default to single column */
-            gap: 15px;
-            width: 100%;
-            margin-bottom: 15px;
+        h1 {
+            color: #4a5568;
         }
-
-        @media (min-width: 768px) {
-            .video-player-grid {
-                grid-template-columns: 1fr 1fr; /* Two columns on larger screens */
-            }
+        .meeting-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+            justify-content: center;
+        }
+        .meeting-link input {
+            width: 70%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #5a67d8;
+        }
+        .desc {
+            color: #718096;
+            margin-bottom: 2rem;
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <h1>Chat Lobby</h1>
-        <div id="chat-log"></div>
-        <input id="chat-message-input" type="text" placeholder="Type your message here..." />
-        <input id="chat-message-submit" type="button" value="Send" />
-    </div>
-
-    <div class="video-container">
-        <div class="video-player-grid">
-            <video id="local-video" autoplay muted class="video-player"></video>
-            <video id="remote-video" autoplay class="video-player"></video>
-            <video id="local-screen-share-video" autoplay muted class="video-player"></video>
-            <video id="remote-screen-share-video" autoplay class="video-player"></video>
+    <div class="container">
+        <h1>Welcome to Open Video Chat</h1>
+        <div class="desc">
+            Click <b>Start Call</b> to get your unique meeting link. Share this link with anyone to let them join your call. Multiple calls can happen at the same time, just like Omegle!
         </div>
-
-        <div class="call-controls">
-            <button id="call-btn" class="call-button" disabled>Start Call</button>
-            <button id="hangup-btn" class="call-button" disabled>Hang Up</button>
-            <button id="screen-share-btn" class="call-button" disabled>Share Screen</button>
-        </div>
-        <div id="screen-share-options-modal" style="display: none; position: absolute; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 100;">
-            <p>How do you want to share your screen?</p>
-            <button id="simple-share-btn" class="call-button">Simple Share</button>
-            <button id="ai-share-btn" class="call-button">Share with AI</button>
-            <button id="cancel-share-btn" class="call-button" style="background-color: #f0ad4e;">Cancel</button>
+        <button class="btn" onclick="startCall()"><i class="fas fa-video"></i> Start Call</button>
+        <div class="meeting-link" id="meetingLinkBox" style="display:none;">
+            <input type="text" id="meetingLink" readonly value="">
+            <button class="btn" onclick="copyMeetingLink()"><i class="fas fa-copy"></i> Copy Link</button>
         </div>
     </div>
-
     <script>
-        // --- Chat Logic Starts Here ---
-        const chatLog = document.querySelector('#chat-log');
-        const chatMessageInput = document.querySelector('#chat-message-input');
-        const chatMessageSubmit = document.querySelector('#chat-message-submit');
-
-        const roomName = 'lobby';
-
-        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
-        const chatSocket = new WebSocket(
-            wsScheme + '://' + window.location.host + '/ws/chat/' + roomName + '/'
-        );
-
-        if (chatMessageInput) {
-            chatMessageInput.focus();
-        } else {
-            console.error("chatMessageInput element not found. Check ID in HTML.");
+    function startCall() {
+        const id = Math.random().toString(36).substring(2, 10);
+        const link = `${window.location.origin}/meeting/${id}/`;
+        document.getElementById('meetingLink').value = link;
+        document.getElementById('meetingLinkBox').style.display = 'flex';
+        window.location.href = link;
+    }
+    function copyMeetingLink() {
+        const link = document.getElementById('meetingLink').value;
+        if (link) {
+            navigator.clipboard.writeText(link)
+                .then(() => alert('Meeting link copied!'))
+                .catch(() => alert('Failed to copy link.'));
         }
-
-        chatSocket.onopen = function(e) {
-            console.log("Chat socket opened successfully!");
-        };
-
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'chat_message') {
-                const message = data.message;
-                chatLog.innerHTML += `<p>${message}</p>`;
-                chatLog.scrollTop = chatLog.scrollHeight;
-            } else if (data.type === 'offer' || data.type === 'answer' || data.type === 'candidate') {
-                handleSignalingMessage(data);
-            } else if (data.type === 'hangup') {
-                handleHangupSignal();
-            }
-        };
-
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly. Code:', e.code, 'Reason:', e.reason);
-            alert('Disconnected from chat. Please refresh the page.');
-        };
-
-        chatSocket.onerror = function(e) {
-            console.error('Chat socket error:', e);
-        };
-
-        if (chatMessageInput) {
-            chatMessageInput.onkeyup = function(e) {
-                if (e.keyCode === 13) {
-                    chatMessageSubmit.click();
-                }
-            };
-        }
-
-        if (chatMessageSubmit) {
-            chatMessageSubmit.onclick = function(e) {
-                const message = chatMessageInput.value.trim();
-                if (message) {
-                    if (chatSocket.readyState === WebSocket.OPEN) {
-                        chatSocket.send(JSON.stringify({
-                            'type': 'chat_message',
-                            'message': message
-                        }));
-                        chatMessageInput.value = '';
-                    } else {
-                        console.error("WebSocket is not open. Message not sent.");
-                        alert("Cannot send message: Not connected to chat. Please refresh.");
-                    }
-                }
-            };
-        }
-
-
-        // --- WebRTC Logic Starts Here ---
-
-        let localStream; // User's camera/mic stream
-        let screenStream; // User's screen share stream
-        let remoteStream; // Remote user's camera/mic stream
-        let remoteScreenStream; // Remote user's screen share stream
-        let peerConnection;
-        let screenSharing = false;
-        let currentShareType = 'none';
-
-        const localVideo = document.getElementById('local-video');
-        const remoteVideo = document.getElementById('remote-video');
-        const localScreenShareVideo = document.getElementById('local-screen-share-video'); // NEW
-        const remoteScreenShareVideo = document.getElementById('remote-screen-share-video'); // NEW
-
-        const callBtn = document.getElementById('call-btn');
-        const hangupBtn = document.getElementById('hangup-btn');
-        const screenShareBtn = document.getElementById('screen-share-btn');
-        const screenShareOptionsModal = document.getElementById('screen-share-options-modal');
-        const simpleShareBtn = document.getElementById('simple-share-btn');
-        const aiShareBtn = document.getElementById('ai-share-btn');
-        const cancelShareBtn = document.getElementById('cancel-share-btn');
-
-        callBtn.disabled = true;
-        hangupBtn.disabled = true;
-        screenShareBtn.disabled = true;
-
-        if (callBtn) {
-            callBtn.addEventListener('click', createOffer);
-        }
-        if (hangupBtn) {
-            hangupBtn.addEventListener('click', hangUp);
-        }
-        if (screenShareBtn) {
-            screenShareBtn.addEventListener('click', () => {
-                if (!screenSharing) {
-                    // Show the modal when screen share button is clicked if not already sharing
-                    screenShareOptionsModal.style.display = 'block';
-                    const btnRect = screenShareBtn.getBoundingClientRect();
-                    screenShareOptionsModal.style.top = `${btnRect.bottom + 10}px`;
-                    screenShareOptionsModal.style.left = `${btnRect.left}px`;
-                } else {
-                    // If already sharing, stop sharing directly
-                    stopScreenShare();
-                }
-            });
-        }
-        if (simpleShareBtn) {
-            simpleShareBtn.addEventListener('click', () => startScreenShare('simple'));
-        }
-        if (aiShareBtn) {
-            aiShareBtn.addEventListener('click', () => startScreenShare('ai'));
-        }
-        if (cancelShareBtn) {
-            cancelShareBtn.addEventListener('click', () => {
-                screenShareOptionsModal.style.display = 'none';
-            });
-        }
-
-        const servers = {
-            iceServers:[
-                {
-                    urls:['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
-                }
-            ]
-        };
-
-        async function init() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-                localVideo.srcObject = localStream;
-                console.log("Local media stream obtained.");
-                callBtn.disabled = false;
-                screenShareBtn.disabled = false;
-            } catch (error) {
-                console.error("Error accessing media devices:", error);
-                alert("Could not access camera/microphone. You can still chat, but video calls will not send your video/audio without media access.");
-                callBtn.disabled = false;
-                screenShareBtn.disabled = false;
-                localStream = null;
-            }
-        }
-
-        async function createPeerConnection() {
-            if (peerConnection) {
-                console.log("PeerConnection already exists. Skipping recreation.");
-                return;
-            }
-
-            peerConnection = new RTCPeerConnection(servers);
-            remoteStream = new MediaStream();
-            remoteVideo.srcObject = remoteStream;
-
-            remoteScreenStream = new MediaStream(); // NEW: Initialize remote screen stream
-            remoteScreenShareVideo.srcObject = remoteScreenStream; // Set remote screen video object
-
-            // Add local stream tracks if available
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-                console.log("Local camera tracks added to peer connection.");
-            } else {
-                console.warn("No local camera stream available. Proceeding without adding local camera tracks.");
-            }
-
-            // NEW: Handle incoming tracks - determine if camera or screen
-            peerConnection.ontrack = async (event) => {
-                // If the track is part of the initial remoteStream, it's likely the camera/mic
-                // If it's a new stream (e.g., from screen share), handle it separately
-                if (event.streams && event.streams[0] && event.streams[0].id === remoteStream.id) {
-                    event.streams[0].getTracks().forEach(track => {
-                        remoteStream.addTrack(track);
-                    });
-                    console.log("Remote camera/mic track added to remoteStream.");
-                } else {
-                    // This is likely a separate stream, e.g., screen share
-                    // Clear existing tracks on remote screen stream to avoid duplicates
-                    remoteScreenStream.getTracks().forEach(track => remoteScreenStream.removeTrack(track));
-                    event.streams[0].getTracks().forEach(track => {
-                        remoteScreenStream.addTrack(track);
-                    });
-                    remoteScreenShareVideo.style.display = 'block'; // Show remote screen video
-                    console.log("Remote screen share track added to remoteScreenStream.");
-
-                    // Listen for screen share ending on the remote side
-                    event.streams[0].getVideoTracks()[0].onended = () => {
-                        console.log("Remote screen share ended.");
-                        remoteScreenShareVideo.style.display = 'none'; // Hide remote screen video
-                        remoteScreenStream.getTracks().forEach(track => remoteScreenStream.removeTrack(track)); // Clean up tracks
-                    };
-                }
-            };
-
-            peerConnection.onicecandidate = async (event) => {
-                if (event.candidate) {
-                    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                        chatSocket.send(JSON.stringify({
-                            'type': 'candidate',
-                            'candidate': event.candidate
-                        }));
-                        console.log('Sending ICE candidate:', event.candidate);
-                    } else {
-                        console.error("WebSocket not open. Cannot send ICE candidate.");
-                    }
-                }
-            };
-
-            peerConnection.onconnectionstatechange = (event) => {
-                console.log('PeerConnection state change:', peerConnection.connectionState);
-                if (peerConnection.connectionState === 'connected') {
-                    hangupBtn.disabled = false;
-                    callBtn.disabled = true;
-                    screenShareBtn.disabled = false;
-                } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed' || peerConnection.connectionState === 'closed') {
-                    hangupBtn.disabled = true;
-                    callBtn.disabled = false;
-                    screenShareBtn.disabled = true;
-                    remoteVideo.srcObject = null;
-                    localVideo.srcObject = null; // Clear local also if connection closes
-                    remoteScreenShareVideo.srcObject = null; // NEW: Clear remote screen stream
-                    localScreenShareVideo.srcObject = null; // NEW: Clear local screen stream
-
-                    // Reset screen sharing state if connection closes
-                    if (screenSharing) {
-                        stopScreenShare(true); // true to avoid re-adding camera
-                    }
-                    // Re-initialize to get local camera back if needed, or if it was never gotten
-                    init();
-                }
-            };
-        }
-
-        async function createOffer() {
-            await createPeerConnection();
-
-            if (!localStream) {
-                await init(); // Try to get local stream if not already obtained
-                if (!localStream) {
-                    console.warn("Cannot create offer without local media stream. You will only receive video.");
-                }
-            }
-
-            try {
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                    chatSocket.send(JSON.stringify({
-                        'type': 'offer',
-                        'offer': offer
-                    }));
-                    console.log('Sending offer:', offer);
-                } else {
-                    console.error("WebSocket not open. Cannot send offer.");
-                    alert("Failed to send offer: Not connected to chat server.");
-                }
-            } catch (error) {
-                console.error("Error creating or sending offer:", error);
-                alert("Failed to create call offer. Check console for details.");
-            }
-        }
-
-        async function createAnswer(offer) {
-            await createPeerConnection();
-            try {
-                await peerConnection.setRemoteDescription(offer);
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                    chatSocket.send(JSON.stringify({
-                        'type': 'answer',
-                        'answer': answer
-                    }));
-                    console.log('Sending answer:', answer);
-                } else {
-                    console.error("WebSocket not open. Cannot send answer.");
-                    alert("Failed to send answer: Not connected to chat server.");
-                }
-            } catch (error) {
-                console.error("Error creating or sending answer:", error);
-                alert("Failed to create call answer. Check console for details.");
-            }
-        }
-
-        async function handleSignalingMessage(message) {
-            if (!peerConnection) {
-                if (message.type === 'offer') {
-                    await createPeerConnection();
-                } else {
-                    console.warn("PeerConnection not ready for incoming signaling message (not an offer). Message ignored.");
-                    return;
-                }
-            }
-
-            if (message.type === 'offer') {
-                console.log('Received offer:', message.offer);
-                if (peerConnection.remoteDescription === null || peerConnection.remoteDescription.type !== message.offer.type || peerConnection.remoteDescription.sdp !== message.offer.sdp) {
-                    await peerConnection.setRemoteDescription(message.offer);
-                    await createAnswer(message.offer);
-                } else {
-                    console.warn("Received offer is redundant or already set.");
-                }
-            } else if (message.type === 'answer') {
-                console.log('Received answer:', message.answer);
-                if (peerConnection.remoteDescription === null || peerConnection.remoteDescription.type !== message.answer.type || peerConnection.remoteDescription.sdp !== message.answer.sdp) {
-                   await peerConnection.setRemoteDescription(message.answer);
-                } else {
-                   console.warn("Received answer is redundant or already set.");
-                }
-            } else if (message.type === 'candidate') {
-                console.log('Received ICE candidate:', message.candidate);
-                if (peerConnection && peerConnection.remoteDescription) {
-                    try {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
-                    } catch (e) {
-                        console.error("Error adding received ICE candidate:", e);
-                    }
-                } else {
-                     console.warn("PeerConnection or remoteDescription not ready for incoming ICE candidate. Candidate might be queued or ignored.", message.candidate);
-                }
-            }
-        }
-
-        async function hangUp() {
-            console.log('Attempting to hang up...');
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
-            }
-            if (screenStream) { // NEW: Stop screen stream on hangup
-                screenStream.getTracks().forEach(track => track.stop());
-                screenStream = null;
-            }
-
-            localVideo.srcObject = null;
-            remoteVideo.srcObject = null;
-            localScreenShareVideo.srcObject = null; // NEW
-            remoteScreenShareVideo.srcObject = null; // NEW
-            localScreenShareVideo.style.display = 'none'; // NEW
-            remoteScreenShareVideo.style.display = 'none'; // NEW
-
-            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                chatSocket.send(JSON.stringify({
-                    'type': 'hangup'
-                }));
-            } else {
-                console.warn("WebSocket not open. Cannot send hangup signal.");
-            }
-            console.log('Call ended locally and hangup signal sent (if socket open).');
-            callBtn.disabled = false;
-            hangupBtn.disabled = true;
-            screenShareBtn.disabled = false;
-            screenShareBtn.textContent = 'Share Screen'; // Reset button text
-            screenSharing = false;
-            currentShareType = 'none';
-            init(); // Re-initialize to get local camera back
-        }
-
-        async function handleHangupSignal() {
-            console.log('Received hangup signal from other peer. Tearing down connection.');
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
-            remoteVideo.srcObject = null;
-            remoteScreenShareVideo.srcObject = null; // NEW
-            remoteScreenShareVideo.style.display = 'none'; // NEW
-
-            callBtn.disabled = false;
-            hangupBtn.disabled = true;
-            screenShareBtn.disabled = false; // Re-enable screen share after hangup (if init was successful)
-            screenShareBtn.textContent = 'Share Screen'; // Reset button text
-            screenSharing = false;
-            currentShareType = 'none';
-            // Do not call init() here, as the local user's stream should already be handled by their own hangUp or init()
-        }
-
-        // NEW FUNCTIONS FOR SCREEN SHARING
-        async function startScreenShare(shareType) {
-            screenShareOptionsModal.style.display = 'none'; // Hide the modal
-
-            if (!peerConnection || peerConnection.connectionState !== 'connected') {
-                alert("You must be in a call to share your screen.");
-                return;
-            }
-
-            if (screenSharing && screenStream) { // If already sharing, stop current share first
-                stopScreenShare();
-                return; // Stop and then re-prompt if they click again
-            }
-
-            try {
-                // Get screen share stream
-                const newScreenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
-                    audio: true
-                });
-
-                screenStream = newScreenStream; // Store the new screen stream globally
-                localScreenShareVideo.srcObject = screenStream; // Show local screen on dedicated video element
-                localScreenShareVideo.style.display = 'block'; // Make it visible
-
-                // Add the screen's video and audio tracks to the peer connection
-                // This sends them to the remote peer AS NEW TRACKS
-                screenStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, screenStream);
-                });
-                console.log("Local screen tracks added to peer connection.");
-
-                // Listen for screen sharing ending (e.g., user clicks 'Stop sharing' in browser UI)
-                screenStream.getVideoTracks()[0].onended = () => {
-                    console.log("Screen share ended by user.");
-                    stopScreenShare();
-                };
-
-                screenSharing = true;
-                currentShareType = shareType;
-                screenShareBtn.textContent = 'Stop Sharing';
-                console.log(`Started screen share: ${shareType}`);
-
-                // Send an offer again to signal the new tracks (screen share)
-                // This forces renegotiation so the remote peer picks up the new tracks
-                // We'll create a new offer after adding tracks
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                chatSocket.send(JSON.stringify({
-                    'type': 'offer',
-                    'offer': offer
-                }));
-                console.log('Sending offer after adding screen tracks:', offer);
-
-
-                // TODO: Here's where AI-specific logic for screen sharing would start
-                if (shareType === 'ai') {
-                    console.log("AI Screen Sharing selected. (AI logic placeholder)");
-                }
-
-            } catch (error) {
-                console.error("Error starting screen share:", error);
-                alert("Failed to share screen. Make sure you granted permission. Error: " + error.message);
-                screenSharing = false;
-                currentShareType = 'none';
-                screenShareBtn.textContent = 'Share Screen';
-                localScreenShareVideo.style.display = 'none'; // Hide if failed
-                if (screenStream) {
-                    screenStream.getTracks().forEach(track => track.stop());
-                    screenStream = null;
-                }
-            }
-        }
-
-        async function stopScreenShare(isHangup = false) {
-            if (!screenSharing && !isHangup) return; // Nothing to stop if not sharing and not part of hangup
-
-            // Stop screen stream tracks
-            if (screenStream) {
-                screenStream.getTracks().forEach(track => track.stop());
-                screenStream = null;
-            }
-
-            // Remove screen share tracks from peer connection
-            if (peerConnection) {
-                peerConnection.getSenders().forEach(sender => {
-                    if (sender.track && sender.track.kind === 'video' && sender.track.label.includes('screen')) { // Assuming screen tracks have 'screen' in label
-                        peerConnection.removeTrack(sender);
-                        console.log("Removed screen video track from peer connection.");
-                    }
-                    if (sender.track && sender.track.kind === 'audio' && sender.track.label.includes('screen')) {
-                        peerConnection.removeTrack(sender);
-                        console.log("Removed screen audio track from peer connection.");
-                    }
-                });
-            }
-
-            localScreenShareVideo.srcObject = null;
-            localScreenShareVideo.style.display = 'none'; // Hide local screen video
-
-            screenSharing = false;
-            currentShareType = 'none';
-            screenShareBtn.textContent = 'Share Screen';
-            console.log("Screen share stopped.");
-
-            // Renegotiate to signal track removal IF NOT a full hangup
-            if (peerConnection && peerConnection.connectionState === 'connected' && !isHangup) {
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                chatSocket.send(JSON.stringify({
-                    'type': 'offer',
-                    'offer': offer
-                }));
-                console.log('Sending offer after removing screen tracks:', offer);
-            }
-        }
-
-        init(); // Initialize the video stream on page load
+    }
     </script>
 </body>
 </html>
