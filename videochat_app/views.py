@@ -1,17 +1,17 @@
 # videochat_app/views.py
 
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.models import User
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.utils import timezone
+from datetime import datetime, timedelta
 import json
-import uuid
-from django.views.decorators.http import require_http_methods
-from .ai_handler import AIHandler
 
 def lobby(request):
     return render(request, 'videochat_app/lobby.html')
@@ -192,41 +192,7 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
-@csrf_exempt
-def process_ai_command(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            message = data.get('message')
-            
-            if not message:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Message is required'
-                }, status=400)
-            
-            # Strip "! " prefix if present
-            if message.startswith('! '):
-                message = message[2:]
-            
-            # Use Gemini AI for real response
-            ai = AIHandler()
-            response = ai.process_message(message)
-            
-            return JsonResponse({
-                'success': True,
-                'response': response
-            })
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'success': False,
-                'error': 'Invalid request data'
-            }, status=400)
-    
-    return JsonResponse({
-        'success': False,
-        'error': 'Invalid request method'
-    }, status=405)
+
 
 @login_required
 def start_call(request, friend_id):

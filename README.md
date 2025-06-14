@@ -4,87 +4,220 @@ A modern, open-access video chat app (Google Meet style) with real-time video, s
 
 ---
 
-## Features
-- **Open-access video meetings** (no login/signup)
-- **Unique meeting links**
-- **Google Meet-inspired UI/UX**
-- **WebRTC video/audio** (peer-to-peer)
-- **Screen sharing**
-- **Real-time chat** (with AI triggers)
-- **Gemini AI chat integration** ( "! " )
-- **Responsive design** (desktop & mobile)
+## Core Features
+
+### Video Conferencing
+- One-on-One and Group Video Chat
+- Dynamic video grid layout
+- Automatic quality adjustment
+- Camera/microphone device selection
+
+### Chat System
+- Real-time messaging via WebSocket
+- Message persistence during session
+- Typing indicators and timestamps
+- AI Assistant with `!` command prefix
+
+### Screen Sharing
+- Full screen and application window sharing
+- Picture-in-picture mode during share
+- Quality selection for bandwidth management
+- Automatic layout adjustments
+
+### AI Integration
+- Instant AI responses with `!` prefix
+- Context-aware conversations
+- Real-time processing
+- Support for various query types
 
 ---
 
-## Requirements
+## Technical Requirements
 - Python 3.10+
-- Node.js (for static build, optional)
-- Redis (for Django Channels)
-- Google Gemini API key (for AI chat)
-- (Optional) Google Cloud service account JSON (for Vision/Language features)
+- PostgreSQL 13+
+- Redis 6+
+- Node.js 18+ (optional, for frontend development)
+- Google Gemini API key
 
 ---
 
 ## Setup Instructions
 
-1. **Clone the repo & create virtual environment:**
-   ```sh
+1. **Clone & Setup Environment:**
+   ```bash
    git clone <repo-url>
-   cd web_chat_app
+   cd videochat
    python -m venv venv
-   venv\Scripts\activate  # On Windows
-   # Or: source venv/bin/activate  # On Mac/Linux
+   
+   # Windows
+   .\venv\Scripts\activate
+   # Linux/Mac
+   source venv/bin/activate
+   
    pip install -r requirements.txt
    ```
 
-2. **Set up .env:**
-   - Create a `.env` file in the project root:
+2. **Configure Environment:**
+   - Copy `.env.example` to `.env`
+   - Update with your settings:
+     ```env
+     DJANGO_SECRET_KEY=your-secret-key
+     GOOGLE_API_KEY=your-gemini-api-key
+     DB_NAME=videochat
+     DB_USER=postgres
+     DB_PASSWORD=your-password
      ```
-     GOOGLE_API_KEY=your-gemini-api-key-here
-     ```
-   - (Optional) For Vision/Language: add `GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json`
 
-3. **Start Redis:**
-   - Make sure Redis is running on `localhost:6379`.
-
-4. **Run Django server:**
-   ```sh
+3. **Database Setup:**
+   ```bash
+   # Create PostgreSQL database
+   createdb videochat
+   
+   # Run migrations
    python manage.py migrate
+   ```
+
+4. **Redis Setup:**
+   - Install Redis server
+   - Ensure it's running on default port (6379)
+   - Test connection: `redis-cli ping`
+
+5. **Static Files:**
+   ```bash
+   python manage.py collectstatic
+   ```
+
+6. **Run Development Server:**
+   ```bash
    python manage.py runserver
    ```
 
-5. **Open the app:**
-   - Go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-   - Create or share a meeting link from the lobby.
+---
+
+## Usage Guide
+
+### Starting a Meeting
+1. Visit the homepage
+2. Click "Start Meeting" or enter a meeting ID
+3. Allow camera/microphone permissions
+4. Share the meeting link with participants
+
+### During the Meeting
+
+**Video Controls:**
+- 🎥 Toggle camera
+- 🎤 Toggle microphone
+- 📺 Share screen
+- ❌ Leave meeting
+
+**Chat Features:**
+- Regular text messages
+- AI assistance: prefix with `!`
+- Example: `! What's the weather today?`
+
+**Screen Sharing:**
+- Choose sharing mode (full screen/window)
+- Select quality settings
+- Use picture-in-picture view
 
 ---
 
-## How to Use
-- **Join a meeting:** Share/click the meeting link.
-- **Video/Audio:** Allow camera/mic access.
-- **Screen Share:** Click "Share Screen".
-- **Chat:** Use the chat panel.
-- **AI Chat:**
-  - Type `! your question` for instant AI.
-  - Say "Hey Jarvis ..." during screen share for confirmation flow.
+## Development Notes
+
+### Architecture
+- Django + Channels for WebSocket
+- WebRTC for peer-to-peer video
+- Redis for message queuing
+- PostgreSQL for data persistence
+
+### Key Components
+- `consumers.py`: WebSocket handlers
+- `views.py`: HTTP endpoints
+- `meeting.js`: Frontend logic
+- `routing.py`: WebSocket routing
+
+### Testing
+```bash
+# Run tests
+python manage.py test
+
+# Coverage report
+coverage run manage.py test
+coverage report
+```
+
+---
+
+## Production Deployment
+
+1. **Security Settings:**
+   - Set `DEBUG=False`
+   - Configure `ALLOWED_HOSTS`
+   - Enable HTTPS settings
+   - Set secure cookie flags
+
+2. **Server Setup:**
+   - Configure Nginx/Apache
+   - Set up SSL certificates
+   - Configure static file serving
+
+3. **Process Management:**
+   ```bash
+   # Using Daphne
+   daphne -b 0.0.0.0 -p 8000 videochat.asgi:application
+   ```
 
 ---
 
 ## Troubleshooting
-- **404 on /login/**: Remove all authentication decorators/routes.
-- **404 on /api/ai/process/**: Make sure the route is in `urls.py`.
-- **500 error (Google auth):** Only use Gemini unless you have a service account for Vision/Language.
-- **AI not responding:** Check `.env` and API key, restart server.
-- **WebRTC not connecting:** Use two browsers/devices, check console for errors.
+
+### Common Issues
+
+1. **WebSocket Connection Failed:**
+   - Check Redis connection
+   - Verify ASGI configuration
+   - Check browser console for errors
+
+2. **Video Not Showing:**
+   - Allow camera permissions
+   - Check WebRTC configuration
+   - Verify STUN/TURN settings
+
+3. **Chat Not Working:**
+   - Check WebSocket connection
+   - Verify Redis service
+   - Check browser console
+
+---
+
+## Future Roadmap
+
+1. **Q2 2024:**
+   - Mobile app development
+   - Enhanced group features
+   - Advanced AI capabilities
+
+2. **Q3 2024:**
+   - Custom backgrounds
+   - Meeting recording
+   - Real-time translation
+
+3. **Q4 2024:**
+   - End-to-end encryption
+   - Breakout rooms
+   - Advanced moderation
 
 ---
 
 ## Contributing
-- Fork, branch, and PR as usual.
-- Use `.env` for all secrets.
-- See `PROJECT_HISTORY.txt` for full change log and lessons learned.
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
 ---
 
 ## License
-MIT (or your choice) 
+
+MIT License - See LICENSE file for details

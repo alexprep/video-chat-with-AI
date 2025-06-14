@@ -5,177 +5,519 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Meeting Room</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <style>
-        body, html {
-            margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif;
-            background-color: #202124;
-            color: #e8eaed;
+        :root {
+            --primary-bg: #202124;
+            --secondary-bg: #2d2e31;
+            --border-color: #3c3c3c;
+            --text-color: #e8eaed;
+            --accent-color: #1a73e8;
+            --danger-color: #ea4335;
+            --success-color: #34a853;
         }
-        .container {
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .video-section {
-            flex: 3;
-            display: flex;
-            flex-direction: column;
-            background-color: #202124;
-            padding: 10px;
+
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-        .videos {
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Google Sans', Arial, sans-serif;
+            background: var(--primary-bg);
+            color: var(--text-color);
+        }
+
+        .meeting-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            transition: margin-right 0.3s ease;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .main-content.chat-open {
+            margin-right: 320px;
+        }
+
+        /* Video Grid */
+        .video-grid {
             flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+            position: relative;
+            height: calc(100vh - 80px); /* Subtract controls height */
         }
-        video {
-            background-color: black;
+
+        /* Video States */
+        .video-grid.alone {
+            justify-content: center;
+        }
+
+        .video-grid.two-users {
+            justify-content: center;
+        }
+
+        .video-grid.screen-sharing {
+            justify-content: center;
+        }
+
+        /* Video Elements */
+        .video-container {
+            position: relative;
             border-radius: 8px;
-            max-width: 48%;
-            max-height: 48vh;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
-        .controls {
-            margin-top: 10px;
+
+        .video-container.main {
+            width: 100%;
+            max-width: 1280px;
+            aspect-ratio: 16/9;
+            height: 100%;
+            max-height: calc(100vh - 100px);
+        }
+
+        .video-container.small {
+            width: 240px;
+            aspect-ratio: 16/9;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Floating Videos Container */
+        .floating-videos {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        /* Controls Bar */
+        .controls-bar {
+            background: var(--secondary-bg);
+            padding: 12px;
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 16px;
+            border-top: 1px solid var(--border-color);
         }
-        .controls button {
-            background-color: #3c4043;
+
+        .control-button {
+            background: rgba(255, 255, 255, 0.1);
             border: none;
-            color: #e8eaed;
-            padding: 10px 15px;
-            border-radius: 5px;
+            color: var(--text-color);
+            padding: 12px 20px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
         }
-        .controls button.active {
-            background-color: #1a73e8;
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
-        .chat-section {
-            flex: 1;
+
+        .control-button i {
+            font-size: 18px;
+        }
+
+        .control-button.active {
+            color: var(--accent-color);
+        }
+
+        .control-button.danger {
+            color: var(--danger-color);
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 320px;
+            height: 100vh;
+            background: var(--secondary-bg);
+            border-left: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            background-color: #303134;
-            border-left: 1px solid #5f6368;
-            padding: 10px;
-            box-sizing: border-box;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
         }
-        #chat-log {
+
+        .chat-panel.open {
+            transform: translateX(0);
+        }
+
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 5px;
-            border-bottom: 1px solid #5f6368;
+            padding: 16px;
         }
-        #chat-message-input {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
         }
-        #chat-message-submit {
-            margin-top: 10px;
-            width: 100%;
-            padding: 10px;
-            background-color: #1a73e8;
-            border: none;
-            color: white;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
+
         .message {
-            margin-bottom: 8px;
+            margin: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
         }
-        .ai-message {
+
+        .chat-input-container {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .chat-hint {
+            position: absolute;
+            top: -30px;
+            left: 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+        }
+        
+
+        .message.ai {
+            background: rgba(26, 115, 232, 0.1);
             color: #8ab4f8;
         }
-        #screen-share-modal {
+
+        .chat-input-container {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--primary-bg);
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+
+        .chat-send {
+            width: 100%;
+            padding: 8px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Screen Share Modal */
+        .modal {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
-        #screen-share-modal .modal-content {
-            background: #202124;
-            padding: 20px;
+
+        .modal-content {
+            background: var(--secondary-bg);
+            padding: 24px;
             border-radius: 8px;
-            text-align: center;
+            width: 90%;
+            max-width: 500px;
         }
-        #screen-share-modal button {
-            margin: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
+
+        .modal-header {
+            margin-bottom: 16px;
+        }
+
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-button {
+            padding: 12px;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
         }
-        #ai-features {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #1a73e8;
-            border-radius: 5px;
+
+        .modal-button.primary {
+            background: var(--accent-color);
             color: white;
-            font-weight: bold;
-            text-align: center;
         }
-        #ai-status-indicator.active {
-            background-color: #0f9d58;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
+
+        .modal-button.secondary {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .floating-videos {
+                flex-direction: column;
+                bottom: 80px;
+            }
+
+            .video-container.small {
+                width: 160px;
+            }
+
+            .chat-panel {
+                width: 100%;
+            }
+
+            .main-content.chat-open {
+                margin-right: 0;
+            }
+        }
+
+        /* Add active states for buttons */
+        .control-button.active i {
+            color: var(--accent-color);
+        }
+
+        .control-button.muted i {
+            color: var(--danger-color);
         }
     </style>
 </head>
 <body>
-    <div class="container" data-meeting-id="{{ room_id }}">
-        <div class="video-section">
-            <div class="videos">
-                <video id="localVideo" autoplay muted playsinline></video>
-                <video id="remoteVideo" autoplay playsinline></video>
+    <div class="meeting-container" data-room-id="{{ room_id }}">
+        <div class="main-content">
+            <div class="video-grid">
+                <div class="video-container main">
+                    <video id="localVideo" autoplay muted playsinline></video>
+                </div>
+                <div class="floating-videos"></div>
             </div>
-            <div class="controls">
-                <button id="mute-btn">Mute</button>
-                <button id="video-btn">Video Off</button>
-                <button id="screen-share-btn">Share Screen</button>
-                <button id="hangup-btn">Hang Up</button>
+            <div class="controls-bar">
+                <button class="control-button" id="toggleMic">
+                    <i class="fas fa-microphone"></i>
+                    <span>Mute</span>
+                </button>
+                <button class="control-button" id="toggleVideo">
+                    <i class="fas fa-video"></i>
+                    <span>Stop Video</span>
+                </button>
+                <button class="control-button" id="toggleScreen">
+                    <i class="fas fa-desktop"></i>
+                    <span>Share Screen</span>
+                </button>
+                <button class="control-button" id="toggleChat">
+                    <i class="fas fa-comments"></i>
+                    <span>Chat</span>
+                </button>
+                <button class="control-button danger" id="leaveCall">
+                    <i class="fas fa-phone-slash"></i>
+                    <span>Leave</span>
+                </button>
             </div>
         </div>
-        <div class="chat-section">
-            <div id="chat-log"></div>
-            <input type="text" id="chat-message-input" placeholder="Type a message or '! ' for AI chat" autocomplete="off" />
-            <button id="chat-message-submit">Send</button>
-            <div id="ai-features">
-                <span id="ai-status-indicator"></span>
-                <span id="ai-status-text">AI Inactive</span>
+
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h3>Meeting Chat</h3>
+                <button class="control-button" id="closeChat">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type a message or '! ' for AI chat">
+                <button class="chat-send" id="sendMessage">Send</button>
             </div>
         </div>
     </div>
 
-    <div id="screen-share-modal">
+    <div class="modal" id="screenShareModal">
         <div class="modal-content">
-            <h3>Share your screen</h3>
-            <button id="simple-share-btn">Share Screen</button>
-            <button id="ai-share-btn">Share Screen with AI</button>
-            <button id="cancel-share-btn">Cancel</button>
+            <div class="modal-header">
+                <h3>Share your screen</h3>
+            </div>
+            <div class="modal-options">
+                <button class="modal-button primary" id="shareScreen">
+                    <i class="fas fa-desktop"></i>
+                    Share Screen
+                </button>
+                <button class="modal-button primary" id="shareWindow">
+                    <i class="fas fa-window-maximize"></i>
+                    Share Window
+                </button>
+                <button class="modal-button secondary" id="cancelShare">
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
 
-    <script src="{% static 'js/meeting.js' %}"></script>
+    <script type="module" src="{% static 'js/ai_chat.js' %}"></script>
+    <script type="module" src="{% static 'js/meeting.js' %}"></script>
+
+    <style>
+        /* Enhanced Chat Styling */
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px;
+            margin: 8px;
+            border-radius: 12px;
+            max-width: 85%;
+            position: relative;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background: rgba(26, 115, 232, 0.1);
+            color: #8ab4f8;
+        }
+
+        .message-sender {
+            font-size: 0.8em;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .message-content {
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .message-timestamp {
+            font-size: 0.7em;
+            opacity: 0.6;
+            align-self: flex-end;
+            margin-top: 4px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+        }
+
+        .chat-input {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--primary-bg);
+            color: var(--text-color);
+            font-size: 14px;
+            resize: none;
+            min-height: 40px;
+            max-height: 120px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+        }
+
+        .chat-send {
+            padding: 10px 20px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .chat-send:hover {
+            background: #1557b0;
+        }
+
+        .chat-send:active {
+            transform: scale(0.98);
+        }
+
+        /* Typing Indicator Animation */
+        @keyframes blink {
+            0% { opacity: .2; }
+            20% { opacity: 1; }
+            100% { opacity: .2; }
+        }
+
+        .typing-indicator span {
+            animation-name: blink;
+            animation-duration: 1.4s;
+            animation-iteration-count: infinite;
+            animation-fill-mode: both;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: .2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: .4s; }
+    </style>
 </body>
 </html>
